@@ -13,6 +13,7 @@
 #include "config.h"
 #include "common.h"
 #include "commands.h"
+#include "tda.h"
 
 /*
  * Defines
@@ -52,7 +53,6 @@ static bool_t Events_ProcessButton(char gpio);
 static bool_t Events_ProcessEncoders();
 static char *Events_ButGetNextCommand(button_t *pBut);
 
-
 /*
  * Local Variables
  */
@@ -82,11 +82,12 @@ static uint8_t          mButtonsNb = 0;
 static encoder_t        mEncoders[ENCODERS_NB];
 static uint8_t          mEncodersNb = 0;
 
+
 /*
  * Global Variables
  */
 
-
+extern int              tdaAddress;
 /*
  * Public Functions Definitions
  */
@@ -99,7 +100,7 @@ static void ISR_RDS_Handler(void)
 void Events_Init(const char *pFileName)
 {
     print("Starting Events Module\n");
-
+    
     /* Init configuration for events */
     memset(mEncoders, 0, sizeof(encoder_t) * ENCODERS_NB);
     memset(mButtons, 0, sizeof(button_t) * BUTTONS_NB);
@@ -109,7 +110,7 @@ void Events_Init(const char *pFileName)
     mEventsMessageQueueBuf.mq_msgsize = 512;
     mEventsMessageQueueBuf.mq_maxmsg = 32;
     mEventsMessageQueueFd = mq_open("/QCarPcEvents", O_CREAT | O_RDWR, 600, &mEventsMessageQueueBuf);
-
+    
     if(mEventsMessageQueueFd < 0)
     {
         perror("Error");
@@ -398,7 +399,7 @@ static void Events_ReadConfig(const char *pFileName)
         perror("file read went wrong\n");
         print("file read went wrong\n");
     }
-
+    print("inside");
     while(fgets(pBuffer, LINE_MAX_SIZE, fp))
     {
         if(pBuffer[0] == '#' || pBuffer[0] == '\n' || pBuffer[0] == '\r')
@@ -419,6 +420,20 @@ static void Events_ReadConfig(const char *pFileName)
             pData += strlen(pData) + 1;
             strcpy((char*)ipAddress, pData);
             pData += strlen(pData);
+            continue;
+        }
+
+        /* Get TDA address */
+        
+        pData = strstr(pBuffer, "tda");
+        if(pData)
+        {
+            pData += strlen(pData) + 1;
+            tdaAddress = atoi(pData);
+            pData += strlen(pData);
+            print("tda address");
+            print(tdaAddress);
+            print("\n");
             continue;
         }
 

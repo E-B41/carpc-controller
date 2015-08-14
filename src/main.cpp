@@ -18,6 +18,9 @@
 #include "config.h"
 #include "common.h"
 
+#include "tda.h"
+#include "wiringPi.h"
+#include "wiringPiI2C.h"
 /*
  * Defines
  */
@@ -45,12 +48,17 @@ static bool_t   mForceStop = FALSE;
  * Global Variables
  */
 uint8_t         gSystemMode; /* systemModes_t */
+int             tdaAddress;
+tda::tda        *TDA = new tda::tda();
 
 /*
  * Public functions definitions
  */
 int main(int argc, char *argv[])
-{
+{   
+    wiringPiSetup();
+    
+
     if(argc != 2)
     {
         printf("Please provide the path to the configuration file\n");
@@ -66,7 +74,7 @@ int main(int argc, char *argv[])
         printf("web: www.engineering-diy.blogspot.com\n");
         printf("forum: http://engineeringdiy.freeforums.org/\n\n");
     }
-
+	
 
     /* Install signal handler */
     signal(SIGINT, intHandler);
@@ -74,13 +82,24 @@ int main(int argc, char *argv[])
     /* Initialize GPIO module */
     //wiringPiSetup();
     wiringPiSetupGpio();
-
+    
     /* Get configuration from the input file */
     Events_Init(argv[1]);
     //Events_Init("/home/pi/config/gpio_description");
+    
+    /* TDA Initialization */
+    if(tdaAddress == 0)
+    {
+        printf("No TDA Address\n");
+    } 
+    else {printf("\nTDA Address: %i \n", tdaAddress); }
 
+    TDA->init(tdaAddress);
+    
+    
     /* Restore default mode */
     gSystemMode = gModeRadio_c;
+
 
     /* XBMC Event Client Module */
     XBMC_ClientInit("CarPC GPIO Controller", (const char*)NULL);
@@ -90,6 +109,9 @@ int main(int argc, char *argv[])
 
     /* Commands Module Interface */
     Commands_Init();
+
+
+    
 
     /* Radio Module Interface */
     Radio_Init(RADIO_START_VOL, RADIO_START_FREQ, 35);

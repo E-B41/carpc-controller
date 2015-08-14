@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <iostream>
+#include <sstream>
 
 #include "radio.h"
 #include "common.h"
@@ -13,6 +15,7 @@
 #include "si4703.h"
 #include "xbmcclient_if.h"
 #include "event-server.h"
+#include "tda.h"
 
 /*
  * Defines
@@ -44,12 +47,14 @@ static bool_t           mForceStop = FALSE;
 extern uint8_t          gSystemMode;
 extern bool_t           gRdsEnabled;
 extern bool_t           gFrequencyChanged;
-
+extern tda::tda         *TDA;
 /*
  * Public functions definitions
  */
 void Commands_Init()
 {
+   
+
     //pthread_mutex_init(&lockX, NULL);
     print("Starting Commands Module\n");
 
@@ -103,6 +108,7 @@ static void *Commands_ProcessLoop(void *pParam)
 
         ret = mq_receive(mCommandsMessageQueueFd, (char*)pBuff, mCommandsMessageQueueBuf.mq_msgsize,
             &msgPrio);
+        
         if (ret >= 0) /* got a message */
         {
             Commands_Execute((char*)pBuff);
@@ -134,8 +140,9 @@ static void Commands_Execute(char *pStr)
 
     if(pStr)
     {
-    	print("processing [%s]\n", pStr);
-    	//print("System mode: %d\n", gSystemMode);
+    	printf("processing [%s]\n", pStr);
+    	
+        //print("System mode: %d\n", gSystemMode);
 
     	memset(pCommands, 0, MAX_COMMANDS * sizeof(pCommands[0]));
 
@@ -161,7 +168,7 @@ static void Commands_Execute(char *pStr)
     	}
     	iComm++;
 
-
+        
     	/* Iterate through commands */
     	while(iComm)
     	{
@@ -171,7 +178,127 @@ static void Commands_Execute(char *pStr)
     		{
     		    Radio_RdsUpdate();
     		}
-    		/* XBMC Keyboard action */
+    		/*TDA Commands */
+            else if(strstr(pComm, TDA_CMD))
+            {
+                printf("TDA Command:  ");
+
+                if(strstr(pComm,TDA_INIT))
+                {
+                    TDA->initVolume(0);
+                    TDA->initBass(0);
+                    TDA->initTreble(0);
+                    TDA->initFade(0);
+                    TDA->initBalance(0);
+                }
+
+                //Volume
+                else if(strstr(pComm, TDA_VOL_UP))
+                {
+                    printf("Volume up to: ");
+                    float out = TDA->setVolume(1);
+                    printf("%f \n", out);
+                    std::stringstream ss_cmd;
+                    ss_cmd << "SetProperty(Volume.Value," << TDA->getVolume() <<",10000)";
+                    const std::string& ss_str = ss_cmd.str();
+                    const char* ss_cstr = ss_str.c_str();
+                    XBMC_ClientAction(ss_cstr);
+                    XBMC_ClientAction("SetProperty(Volume.Changed,true,10000)");
+                }
+                else if(strstr(pComm,TDA_VOL_DOWN))
+                {
+                    printf("Volume down to: ");
+                    float out = TDA->setVolume(-1);
+                    printf("%f \n", out);
+                    std::stringstream ss_cmd;
+                    ss_cmd << "SetProperty(Volume.Value," << TDA->getVolume() <<",10000)";
+                    const std::string& ss_str = ss_cmd.str();
+                    const char* ss_cstr = ss_str.c_str();
+                    XBMC_ClientAction(ss_cstr);
+                    XBMC_ClientAction("SetProperty(Volume.Changed,true,10000)");
+                }
+                //Bass
+                else if(strstr(pComm,TDA_BA_UP))
+                {
+                    printf("Bass up to: ");
+                    int out = TDA->setBass(1);
+                    printf("%i \n", out);
+                }
+                else if(strstr(pComm,TDA_BA_DOWN))
+                {
+                    printf("Bass down to: ");
+                    int out = TDA->setBass(-1);
+                    printf("%i \n", out);
+                }
+                //Treble
+                else if(strstr(pComm,TDA_TR_UP))
+                {
+                    printf("Treble up to: ");
+                    int out = TDA->setTreble(1);
+                    printf("%i \n", out);
+                }
+                else if(strstr(pComm,TDA_TR_DOWN))
+                {
+                    printf("Treble down to: ");
+                    int out = TDA->setTreble(-1);
+                    printf("%i \n", out);
+                }
+                //Fade
+                else if(strstr(pComm,TDA_FA_FR))
+                {
+                    printf("Fade front to: ");
+                    int out = TDA->setFade(1);
+                    printf("%i \n", out);
+                }
+                else if(strstr(pComm,TDA_FA_RE))
+                {
+                    printf("Fade rear to: ");
+                    int out = TDA->setFade(-1);
+                    printf("%i \n", out);
+                }
+                //Balance
+                else if(strstr(pComm,TDA_BL_LE))
+                {
+                    printf("Balance left to: ");
+                    int out = TDA->setBalance(-1);
+                    printf("%i \n", out);
+                }
+                else if(strstr(pComm,TDA_BL_RE))
+                {
+                    printf("Balance right to: ");
+                    int out = TDA->setBalance(1);
+                    printf("%i \n", out);
+                }
+                //Input
+                else if(strstr(pComm,TDA_IN1))
+                {
+                    printf("Input 1");
+                    int out = TDA->setInput(1);
+                    printf("%i \n", out);
+                }
+                else if(strstr(pComm,TDA_IN2))
+                {
+                    printf("Input 2");
+                    int out = TDA->setInput(2);
+                    printf("%i \n", out);
+                }
+                else if(strstr(pComm,TDA_IN3))
+                {
+                    printf("Input 3");
+                    int out = TDA->setInput(3);
+                    printf("%i \n", out);
+                }
+                else if(strstr(pComm,TDA_IN4))
+                {
+                    printf("Input 4");
+                    int out = TDA->setInput(4);
+                    printf("%i \n", out);
+                }
+                
+
+            }
+            
+            /* XBMC Keyboard action */
     		else if((strstr(pComm, XBMCBUTTON_CMD)) && (gSystemMode == gModeXBMC_c))
     		{
     			XBMC_ClientButton((const char*)pComm + strlen(XBMCBUTTON_CMD), "KB");
@@ -186,17 +313,21 @@ static void Commands_Execute(char *pStr)
     		/* Toggle Radio/Media Center */
     		else if(strstr((const char*)pComm, SYSTEM_MODE_TOGGLE))
     		{
-    			gSystemMode ^= 0x01;
-
+                gSystemMode ^= 0x01;
+                
     			if(gSystemMode == gModeRadio_c)
     			{
     				XBMC_ClientAction("PlayerControl(Stop)");
     				XBMC_ClientAction("SetProperty(Radio.Active,true,10000)");
-    				si_mute(0);
+    				int out = TDA->setInput(2);
+                    printf("%i", out);
+                    si_mute(0);
     			}
     			else
     			{
     				XBMC_ClientAction("SetProperty(Radio.Active,false,10000)");
+                    int out = TDA->setInput(1);
+                    printf("%i", out);
     				si_mute(1);
     			}
     			print("Mode: %s\n", (gSystemMode==gModeRadio_c)?"radio":"media center");
@@ -216,7 +347,7 @@ static void Commands_Execute(char *pStr)
     			}
     			else if(!memcmp(pComm, RADIO_CMD_SEEK_DOWN, strlen(RADIO_CMD_SEEK_DOWN)))
     			{
-    				si_seek(SEEK_DOWN);
+                    si_seek(SEEK_DOWN);
     				gFrequencyChanged = TRUE;
     			}
     			else if(!memcmp(pComm, RADIO_CMD_TUNE_UP, strlen(RADIO_CMD_TUNE_UP)))
@@ -272,7 +403,10 @@ static void Commands_Execute(char *pStr)
     				gFrequencyChanged = TRUE;
     			}
     		}
-    		/* NAVIGATION commands */
+    		
+
+
+            /* NAVIGATION commands */
     		/*else if(!strcmp(pComm, NAV_CMD_ZOOM_IN))
     		{
     			system("xdotool keyup '+'");
@@ -300,6 +434,7 @@ static void Commands_Execute(char *pStr)
 
     		iComm--;
     	}
+
     	if(gFrequencyChanged)
     	{
     	    Radio_FrequencyUpdate(TRUE);

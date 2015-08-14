@@ -1,5 +1,5 @@
 CC=g++ 
-CPPFLAGS= -lstdc++ -lpthread -lrt -lwiringPi
+CPPFLAGS= -lstdc++ -lpthread -lrt -lwiringPi -std=c++11
 SRC = $(wildcard *.cpp)
 DEPS = $(wildcard *.h)
 OBJ = $(patsubst %.cpp,%.o,$(SRC))
@@ -12,3 +12,4 @@ carpc-controller: $(OBJ)
 
 clean:
 	rm -f *.o
+	rm carpc-controller

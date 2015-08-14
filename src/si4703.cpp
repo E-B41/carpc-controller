@@ -18,7 +18,7 @@
 #define PI2C_BUS    PI2C_BUS1 // default bus
 
 
-static int      si_band[3][2] = { {8750, 10800}, {7600, 10800}, {7600, 9000}};
+static int      si_bands[3][2] = { {8750, 10800}, {7600, 10800}, {7600, 9000}};
 static int      si_space[3] = { 20, 10, 5 };
 static sem_t    si_sem;
 static uint16_t si_regs[16];
@@ -223,7 +223,7 @@ void si_set_channel(int chan)
 {
     int band = (si_regs[SYSCONF2] >> 6) & 0x03;
     int space = (si_regs[SYSCONF2] >> 4) & 0x03;
-    int nchan = (si_band[band][1] - si_band[band][0])/si_space[space];
+    int nchan = (si_bands[band][1] - si_bands[band][0])/si_space[space];
     if (chan > nchan) chan = nchan;
     si_regs[CHANNEL] &= 0xFC00;
     si_regs[CHANNEL] |= chan;
@@ -257,9 +257,9 @@ void si_tune(int freq)
     si_read_regs();
     int band = (si_regs[SYSCONF2] >> 6) & 0x03;
     int space = (si_regs[SYSCONF2] >> 4) & 0x03;
-    if (freq < si_band[band][0]) freq = si_band[band][0];
-    if (freq > si_band[band][1]) freq = si_band[band][1];
-    int nchan = (freq - si_band[band][0])/si_space[space];
+    if (freq < si_bands[band][0]) freq = si_bands[band][0];
+    if (freq > si_bands[band][1]) freq = si_bands[band][1];
+    int nchan = (freq - si_bands[band][0])/si_space[space];
     si_set_channel(nchan);
     gFrequencyChanged = TRUE;
 }
@@ -269,7 +269,7 @@ int si_get_freq()
     int band = (si_regs[SYSCONF2] >> 6) & 0x03;
     int space = (si_regs[SYSCONF2] >> 4) & 0x03;
     int nchan = si_regs[READCHAN] & 0x03FF;
-    int freq = nchan*si_space[space] + si_band[band][0];
+    int freq = nchan*si_space[space] + si_bands[band][0];
     return freq;
 }
 

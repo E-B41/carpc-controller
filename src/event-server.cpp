@@ -65,7 +65,7 @@ void EventServer_Init()
     {
         perror("setsockopt");
         print("Bind error\n");
-        exit(1);
+        //exit(1);
     }
 
     /* Create new thread */
@@ -89,11 +89,12 @@ static void *EventServer_Loop(void *pParam)
 
     while(!mForceStop)
     {
+        
         memset(loopInBuff, 0, sizeof(loopInBuff));
         /* Get data from the UDP RX buffer, but don't block */
         recvSize = recvfrom(sockEventServer, loopInBuff, INPUT_BUFFER_SIZE, 0,
                 (struct sockaddr*)&sockAddr, &addrLen);
-
+		
         if(recvSize > 0)
         {
             Commands_Signal((char*)loopInBuff);
